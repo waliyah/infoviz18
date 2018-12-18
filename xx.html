@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sentiment Analysis of Social Media</title>
+<meta name="viewport" content="width=device-width">
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+<style>
+      body {
+        margin: 0px;
+      }
+      .domain {
+        display: none;
+      }
+      .tick line {
+        stroke: #C0C0BB;
+      }
+      .tick text {
+        fill: #8E8883;
+        font-size: 20pt;
+        font-family: sans-serif;
+      }
+      .axis-label {
+        fill: #635F5D;
+        font-size: 50pt;
+        font-family: sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="1400" height="800"></svg>
+    <script>
+
+
+
+
+      const xValue = d => d.timestamp;
+      const xLabel = 'Time';
+      const yValue = d => d.comp;
+      const yLabel = 'Sentiment';
+      const margin = { left: 120, right: 30, top: 20, bottom: 120 };
+
+      const svg = d3.select('svg');
+      const width = svg.attr('width');
+      const height = svg.attr('height');
+      const innerWidth = width - margin.left - margin.right;
+      const innerHeight = height - margin.top - margin.bottom;
+
+
+
+      svg.append("defs").append("clipPath")
+            .attr("id", "clip")
+        .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+
+      const g = svg.append('g')
+          .attr('transform', `translate(${margin.left},${margin.top})`);
+
+      const xAxisG = g.append('g')
+          .attr('transform', `translate(0, ${innerHeight})`);
+      const yAxisG = g.append('g');
+
+      xAxisG.append('text')
+          .attr('class', 'axis-label')
+          .attr('x', innerWidth / 2)
+          .attr('y', 100)
+          .text(xLabel);
+
+      yAxisG.append('text')
+          .attr('class', 'axis-label')
+          .attr('x', -innerHeight / 2)
+          .attr('y', -60)
+          .attr('transform', `rotate(-90)`)
+          .style('text-anchor', 'middle')
+          .text(yLabel);
+
+      const xScale = d3.scaleTime();
+      const yScale = d3.scaleLinear();
+
+      const xAxis = d3.axisBottom()
+        .scale(xScale)
+        .tickPadding(15)
+        .tickSize(-innerHeight);
+
+      const yAxis = d3.axisLeft()
+        .scale(yScale)
+        .ticks(5)
+        .tickPadding(15)
+        .tickSize(-innerWidth);
+
+      const row = d => {
+        d.timestamp = new Date(d.timestamp);
+        d.comp = +d.comp;
+        return d;
+      };
+
+      d3.csv('sent_output.csv', row, data => {
+        xScale
+          .domain(d3.extent(data, xValue))
+          .range([0, innerWidth])
+          .nice();
+
+        yScale
+          .domain(d3.extent(data, yValue))
+          .range([innerHeight, 0])
+          .nice();
+
+      g.selectAll('circle').data(data)
+           .enter().append('circle')
+            .attr('cx', d => xScale(xValue(d)))
+            .attr('cy', d => yScale(yValue(d)))
+            .attr('fill-opacity', 0.6)
+            .attr('r', 8);
+
+        xAxisG.call(xAxis);
+        yAxisG.call(yAxis);
+        });
+       // Pan and zoom
+
+var zoom = d3.zoom()
+    .scaleExtent([.5, 20])
+    .extent([[0, 0], [width, height]])
+    .on("zoom", zoomed);
+
+svg.append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .style("fill", "none")
+    .style("pointer-events", "all")
+    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+    .call(zoom);
+
+
+ function zoomed() {
+        // create new scale ojects based on event
+    var new_xScale = d3.event.transform.rescaleX(xScale);
+    var new_yScale = d3.event.transform.rescaleY(yScale);
+// update axes
+    xAxisG.call(xAxis.scale(new_xScale));
+    yAxisG.call(yAxis.scale(new_yScale));
+    d3.csv('sent_output.csv', row, data => {
+
+        g.selectAll('circle').data(data)
+           .enter().append('circle')
+     .attr('cx', function(d) {return new_xScale(d.timestamp)})
+     .attr('cy', function(d) {return new_yScale(d.comp)});
+
+     });
+
+   }
+
+</script>
+</body>
+</html>

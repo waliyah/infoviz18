@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .dot {
+            fill-opacity: .5;
+            }
+}
+
+    </style>
+    <title>Sentiment Analysis of Social Media events</title>
+</head>
+
+<body>
+<script src="http://d3js.org/d3.v4.min.js"></script>
+
+<script>
+    // set the dimensions and margins of the graph
+var margin = {top: 20, right: 20, bottom: 30, left: 50},
+    width = 1080 - margin.left - margin.right,
+    height = 700 - margin.top - margin.bottom;
+
+// parse the date / time
+var parseTime = d3.timeParse("%d/%m/%Y");
+var parseTime2 = d3.utcParse("%H:%M:%S");
+var midnight = parseTime("00:00")
+
+var color = d3.scaleQuantize()
+                                .range(["rgb(237,248,233)","rgb(186,228,179)","rgb(116,196,118)","rgb(49,163,84)","rgb(0,109,44)"]);
+                                //Colors derived from ColorBrewer, by Cynthia Brewer, and included in
+                                //https://github.com/d3/d3-scale-chromatic
+
+
+// set the ranges
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleTime().range([height, 0]);
+
+// define the line
+var valueline = d3.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.time); });
+
+// append the svg obgect to the body of the page
+// appends a 'group' element to 'svg'
+// moves the 'group' element to the top left margin
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+// Get the data
+d3.csv("sent_output.csv", function(error, data) {
+  if (error) throw error;
+
+  //Set input domain for color scale
+   color.domain([
+        d3.min(data, function(d) { return d.comp; }),
+        d3.max(data, function(d) { return d.comp; })
+                ]);
+  // format the data
+  data.forEach(function(d) {
+      d.date = parseTime(d.date);
+      d.time = parseTime2(d.time);
+  });
+
+  // Scale the range of the data
+  x.domain(d3.extent(data, function(d) { return d.date; }));
+  y.domain(d3.extent(data, function(d) { return d.time; }));
+
+  // Add the valueline path.
+  //svg.append("path")
+  //    .data([data])
+  //    .attr("class", "line")
+  //    .attr("d", valueline);
+
+  // Add the scatterplot
+  svg.selectAll("dot")
+      .data(data)
+    .enter().append("circle")
+      .attr("r", 5)
+      .attr("cx", function(d) { return x(d.date); })
+      .attr("cy", function(d) { return y(d.time); })
+      .style("fill", function(d) {
+        //Get data value
+                            var value = d.comp;
+
+                            if (value) {
+                                //If value exists…
+                                return color(value);
+                            } else {
+                                //If value is undefined…
+                                return "#ccc";
+                            }
+            });
+  // Add the X Axis
+  svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  // Add the Y Axis
+  svg.append("g")
+      .call(d3.axisLeft(y));
+
+});
+</script>
+
+</body>
+</html>
